@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon, index.js"
+    "dev": "nodemon src/index.js"
   },
   "keywords": [
     "javaScript",
@@ -13,5 +13,8 @@
     "chai"
   ],
   "author": "Abhishek kumar",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
 }
