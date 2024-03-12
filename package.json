@@ -1,0 +1,17 @@
+{
+  "name": "major_backend_project",
+  "version": "1.0.0",
+  "description": "My First Major backend Project",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon, index.js"
+  },
+  "keywords": [
+    "javaScript",
+    "Node",
+    "chai"
+  ],
+  "author": "Abhishek kumar",
+  "license": "ISC"
+}
