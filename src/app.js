@@ -16,4 +16,13 @@ app.use(express.urlencoded({extended:true,limit:'16kb'}))
 app.use(express.static("Public"))
 app.use(cookieParser())
 
+// Improt Routes
+import userRotes from './routes/User.rotes.js'
+// when we export the routes so we have to use middlewares
+
+
+app.use('/api/v1/users',userRotes)// after '/api/v1/users' => userRoutes
+
+// Final Url = https://localhost:5000/api/v1/users/register
+
 export {app}
