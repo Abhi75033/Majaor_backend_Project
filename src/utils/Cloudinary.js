@@ -24,3 +24,5 @@ try {
     return null
 }
 }
+
+export {uploadOnCloudinary}

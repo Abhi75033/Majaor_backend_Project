@@ -21,3 +21,5 @@ constructor(
     } 
     
 }
+
+export {ApiError}
