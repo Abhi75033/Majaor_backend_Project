@@ -14,7 +14,7 @@ const registerUser = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"All fields are reqired")
     }
     //Check if user already exist: username,email
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{Username},{email}]
     })
 
@@ -23,7 +23,11 @@ const registerUser = asyncHandler(async(req,res)=>{
     }
     //Check for the images, Check for avatar
     const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.CoverImage[0]?.path
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path
+    //checking the path for the coverimage is avalabile ornot
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0)
+    coverImageLocalPath = req.files.coverImage[0].path
     //check the local path for avatar is avalaive or not
     if (!avatarLocalPath) {
         throw new ApiError(400,"Avatar file is required")
@@ -31,6 +35,7 @@ const registerUser = asyncHandler(async(req,res)=>{
     // Upload them to cloudinary, avatar
    const avatar = await uploadOnCloudinary(avatarLocalPath)
    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+   //console.log("req.files:",req.files);
     // Check the avatar is uploded or not
     if (!avatar) {
         throw new ApiError(400,"Avatar file is required")
@@ -40,19 +45,21 @@ const registerUser = asyncHandler(async(req,res)=>{
         fullname,
         avatar: avatar.url,
         email,
-        coverImage: coverImage?.url,
+        coverImage: coverImage?.url || "",
         password,
         Username: Username.toLowerCase()
     })
     // remove password and refresh token field from reponse
-    const createdUser = User.findById(user._id).select("-password -refreshToken")
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    )
     //check for user creation
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong while regitering an user")
     }
     //return response
     return res.status(201).json(
-        new ApiResponse(200,createdUser,"User has been created or regiester successfully")
+       new ApiResponse(200, createdUser, "The user has been created Successfully") 
     )
 })
 

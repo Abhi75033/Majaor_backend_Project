@@ -16,10 +16,12 @@ try {
         resource_type:"auto",
     })
     // This is the above process for uploading the files on clouinary
-    console.log(`The file has been uplaoded successfully ${response.url}`);
+   // console.log(`The file has been uplaoded successfully ${response.url}`);
+   fs.unlinkSync(localpath)
+   //console.log(response);
     return response
 } catch (error) {
-    fs.unlink(localpath)// file has been unllinked or deleted from our server if the the upoading
+    fs.unlinkSync(localpath)// file has been unllinked or deleted from our server if the the upoading
     // failed
     return null
 }
