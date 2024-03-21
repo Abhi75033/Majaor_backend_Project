@@ -1,19 +1,19 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/ApiError.js";
-import {User} from "../models/user.model.js"
+import { ApiError } from "../utils/ApiError.js"
+import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
 
-const genrateAccessandRefreshToken = async(User_Id)=>{
+const genrateAccessandRefreshToken = async(UserId)=>{
     try {
-        const user = await User.findById(User_Id)
-        const accessToken= user.AccessTokenGenrator()
-        const refreshToken = user.RefreshTokenGenrator()
-        user.RefreshToken = refreshToken
-        await user.save({validateBeforeSave:false})
+        const user = await User.findById(UserId)
+        const accessToken = user.genrateAccessToken()
+        const refreshToken = user.genrateRefreshToken()
+        user.refreshToken = refreshToken
+        user.save({ validateBeforeSave: false })
         return {accessToken,refreshToken}
     } catch (error) {
-        throw new ApiError(500,"Internal Sever Error!! while genrating Access and Refresh Token")
+        throw error
     }
 }
 
@@ -80,7 +80,7 @@ const loginUser = asyncHandler(async(req,res)=>{
     // Get the data from req.body
     const {email,Username,password} = req.body
     // Validate the username or email
-    if(!email || !Username){
+    if(!email && !Username){
         throw new ApiError(400,"Atleast email or usename is required")
     }
     // Find the user
@@ -141,6 +141,9 @@ const logOut= asyncHandler(async(req,res)=>{
     .status(200)
     .clearCookie("accessToken",option)
     .clearCookie("refreshToken",option)
+    .json(
+        new ApiResponse(200,{},"User loged out")
+    )
 })
     
 
