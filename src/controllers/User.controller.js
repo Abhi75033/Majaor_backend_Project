@@ -4,6 +4,19 @@ import {User} from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
 
+const genrateAccessandRefreshToken = async(User_Id)=>{
+    try {
+        const user = await User.findById(User_Id)
+        const accessToken= user.AccessTokenGenrator()
+        const refreshToken = user.RefreshTokenGenrator()
+        user.RefreshToken = refreshToken
+        await user.save({validateBeforeSave:false})
+        return {accessToken,refreshToken}
+    } catch (error) {
+        throw new ApiError(500,"Internal Sever Error!! while genrating Access and Refresh Token")
+    }
+}
+
 const registerUser = asyncHandler(async(req,res)=>{
     
     // Get the user Details from frontend
@@ -61,6 +74,47 @@ const registerUser = asyncHandler(async(req,res)=>{
     return res.status(201).json(
        new ApiResponse(200, createdUser, "The user has been created Successfully") 
     )
+})
+
+const loginUser = asyncHandler(async(req,res)=>{
+    // Get the data from req.body
+    const {email,Username,password} = req.body
+    // Validate the username or email
+    if(!email || !Username){
+        throw new ApiError(400,"Your email or password is not ragisterd")
+    }
+    // Find the user
+   const user = await User.findOne({
+        $or:[{email},{Username}]
+    })
+    //password check
+    const isPassword = await user.isPasswordCorrect(password)
+    if(!isPassword){
+        throw new ApiError(401,"Your password is incorrect")
+    }
+    // access and refresh token 
+    const {refreshToken,accessToken}=await genrateAccessandRefreshToken(user._id)
+
+    const option={
+        httpOnly:true,
+        secure:true
+    }
+    //send cookie
+
+    res
+    .status(200)
+    .cookie("accessToken",accessToken,option).
+    cookie("refreshToken",refreshToken,option).
+    json(
+        new ApiResponse(
+            200,
+            {
+                user:loginUser,accessToken,refreshToken
+            },
+            "User Logedin Successfully"
+            )
+    )
+
 })
 
     
