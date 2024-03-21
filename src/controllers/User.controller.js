@@ -24,7 +24,7 @@ const registerUser = asyncHandler(async(req,res)=>{
 
     // Validation - not empty
     if([fullname,email,Username,password].some((feild)=>feild?.trim()==="")){
-        throw new ApiError(400,"All fields are reqired")
+        throw new ApiError(400,"All fields are required")
     }
     //Check if user already exist: username,email
     const existedUser = await User.findOne({
@@ -68,7 +68,7 @@ const registerUser = asyncHandler(async(req,res)=>{
     )
     //check for user creation
     if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while regitering an user")
+        throw new ApiError(500, "Something went wrong while registering an user")
     }
     //return response
     return res.status(201).json(
@@ -81,7 +81,7 @@ const loginUser = asyncHandler(async(req,res)=>{
     const {email,Username,password} = req.body
     // Validate the username or email
     if(!email || !Username){
-        throw new ApiError(400,"Your email or password is not ragisterd")
+        throw new ApiError(400,"Atleast email or usename is required")
     }
     // Find the user
    const user = await User.findOne({
@@ -93,23 +93,26 @@ const loginUser = asyncHandler(async(req,res)=>{
         throw new ApiError(401,"Your password is incorrect")
     }
     // access and refresh token 
-    const {refreshToken,accessToken}=await genrateAccessandRefreshToken(user._id)
+    const {refreshToken,accessToken}= await genrateAccessandRefreshToken(user._id)
 
     const option={
         httpOnly:true,
         secure:true
+        //options is used for extralayer of securiety that no one can change or temper the 
+        //access token and refresh token from frontend
     }
     //send cookie
 
     res
     .status(200)
-    .cookie("accessToken",accessToken,option).
-    cookie("refreshToken",refreshToken,option).
-    json(
+    .cookie("accessToken",accessToken,option)
+    .cookie("refreshToken",refreshToken,option)
+    .json(
         new ApiResponse(
             200,
             {
                 user:loginUser,accessToken,refreshToken
+                
             },
             "User Logedin Successfully"
             )
@@ -117,6 +120,28 @@ const loginUser = asyncHandler(async(req,res)=>{
 
 })
 
+const logOut= asyncHandler(async(req,res)=>{
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{refreshToken:undefined}
+        },
+        {
+            new:true
+        }
+    )
+    const option={
+        httpOnly:true,
+        secure:true
+        //options is used for extralayer of securiety that no one can change or temper the 
+        //access token and refresh token from frontend
+    }
+
+    res
+    .status(200)
+    .clearCookie("accessToken",option)
+    .clearCookie("refreshToken",option)
+})
     
 
-export {registerUser}
+export {registerUser,loginUser,logOut}
