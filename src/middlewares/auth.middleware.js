@@ -9,7 +9,7 @@ const jwtverify = asyncHandler(async(req,_,next)=>{
         console.log(token);
 
         if(!token){
-            throw new ApiError(401,"Invalid AccessToken")
+            throw new ApiError(400,"Invalid Access Token")
         }
 
        const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRECT)
@@ -24,7 +24,7 @@ const jwtverify = asyncHandler(async(req,_,next)=>{
      next()
 
     } catch (error) {
-        throw ApiError(400, "Invalid access Token")
+        throw new ApiError(400, "Invalid access Token")
     }
     
 })

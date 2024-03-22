@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
+import jsonwebtoken from 'jsonwebtoken';
 
 const genrateAccessandRefreshToken = async(UserId)=>{
     try {
@@ -146,5 +147,47 @@ const logOut= asyncHandler(async(req,res)=>{
     )
 })
     
+const genrateNewAccessToken = asyncHandler(async(req,res)=>{
+   const upcomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+   if (!upcomingRefreshToken) {
+    throw new ApiError(401,"Invalid Refresh Token")
+   }
+   try {
+    const decodedToken = jsonwebtoken.verify(upcomingRefreshToken,process.env.REFRESH_TOKEN_SECRECT)
+    
+    const user = await User.findById(decodedToken?._id)
 
-export {registerUser,loginUser,logOut}
+    if (!user) {
+        throw new ApiError(401,"unAuthriozed request by user")
+    }
+
+    if(upcomingRefreshToken !== user.refreshToken){
+        throw new ApiError(401,"Unauthrozied request by user !!")
+    }
+
+    const option={
+        httpOnly:true,
+        secure:true
+        //options is used for extralayer of securiety that no one can change or temper the 
+        //access token and refresh token from frontend
+    }
+
+    const {accessToken,newRefreshToken}= await genrateAccessandRefreshToken(user._id)
+
+    res
+    .status(200)
+    .cookie("accessToken",accessToken,option)
+    .cookie("refreshtoken",newRefreshToken,option)
+    .json(
+        new ApiResponse(200,{
+            "accessToken":accessToken,
+            "refreshToken":newRefreshToken
+        },"Access Token Refreshed")
+    )
+            
+   } catch (error) {
+    throw new ApiError(401,"Un-authrozied request")
+   }
+})
+
+export {registerUser,loginUser,logOut,genrateNewAccessToken}
