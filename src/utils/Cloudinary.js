@@ -1,5 +1,7 @@
 import {v2 as cloudinary} from "cloudinary"
 import fs from 'fs'
+import { ApiError } from "./ApiError";
+import { ApiResponse } from "./ApiResponse";
  
 // Cloudiary configuration 
 cloudinary.config({ 
@@ -27,4 +29,19 @@ try {
 }
 }
 
-export {uploadOnCloudinary}
+const deleteOnCloudinary = async(public_id)=>{
+    try {
+        if(!public_id){
+            throw new ApiError(400,"Public Id is required")
+  }
+        const response = await cloudinary.uploader.destroy(public_id)
+        return res.status(200).json(
+            new ApiResponse(200,{response},"File has been deleted successfully")
+        )
+
+        
+    } catch (error) {
+        throw new ApiError(500,"Internal Server Error")
+    }
+}
+export {uploadOnCloudinary,deleteOnCloudinary}

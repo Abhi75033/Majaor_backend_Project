@@ -1,10 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/Cloudinary.js";
+import { uploadOnCloudinary,deleteOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
 import jsonwebtoken from 'jsonwebtoken';
-import mongoose from "mongoose";
+
 
 const genrateAccessandRefreshToken = async(UserId)=>{
     try {
@@ -245,7 +245,7 @@ const updateAvatar = asyncHandler(async(res,req)=>{
     const avatar = await uploadOnCloudinary(avataLocalPath)
 
     if (!avatar.url) {
-        throw new ApiError(400,"Soething Went wrong!!, Wlie uploading avata")
+        throw new ApiError(400,"Soething Went wrong!!, Wlie uploading avatar")
     }
 
     const user = await User.findByIdAndUpdate(
@@ -288,16 +288,16 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
 // Aggregatin Pipleline
 
 const getSuscription = asyncHandler(async(req,res)=>{
-  const {username}= req.params
+  const {username} = req.params
 
   if (!username) {
     throw new ApiError(400,"usernme is missing")
   }
 
-  await User.aggregate([
+  const channel = await User.aggregate([
     {
         $match:{
-            username: username
+            username: username?.toLowerCase()
         }
     },{
         $lookup:{
@@ -324,14 +324,37 @@ const getSuscription = asyncHandler(async(req,res)=>{
                 },
                 isSubscribed:{
                     $cond:{
-                        if:{$in:[req.user?._id0,"$Subscribers.subscriber"]},
+                        if:{$in:[req.user?._id, "$Subscribers.subscriber"]},
                         then: true,
                         else:false
                     }
                 }
         }
+    },
+    {
+        $project:{
+            fullname:1,
+            username:1,
+            avatar:1,
+            coverImage:1,
+            email:1,
+            subscribersCount:1,
+            SubscribeToCount:1,
+            isSubscribed:1
+        }
     }
   ])
+  
+  if (!channel?.length) {
+    throw new ApiError(404,"Channel not found")
+  }
+
+  console.log(channel);
+
+ return res.status(200).json(
+    new ApiResponse(200,channel[0],"Channel fetched successfully")
+  )
+
 })
 
 export {registerUser,loginUser,logOut,genrateNewAccessToken,changeCurrentPassword,
