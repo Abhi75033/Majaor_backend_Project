@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
 import jsonwebtoken from 'jsonwebtoken';
+import mongoose from "mongoose";
 
 const genrateAccessandRefreshToken = async(UserId)=>{
     try {
@@ -149,6 +150,7 @@ const logOut= asyncHandler(async(req,res)=>{
     
 const genrateNewAccessToken = asyncHandler(async(req,res)=>{
    const upcomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
    if (!upcomingRefreshToken) {
     throw new ApiError(401,"Invalid Refresh Token")
    }
@@ -174,7 +176,7 @@ const genrateNewAccessToken = asyncHandler(async(req,res)=>{
 
     const {accessToken,newRefreshToken}= await genrateAccessandRefreshToken(user._id)
 
-    res
+  return  res
     .status(200)
     .cookie("accessToken",accessToken,option)
     .cookie("refreshtoken",newRefreshToken,option)
@@ -190,4 +192,147 @@ const genrateNewAccessToken = asyncHandler(async(req,res)=>{
    }
 })
 
-export {registerUser,loginUser,logOut,genrateNewAccessToken}
+const changeCurrentPassword = asyncHandler(async(req,res)=>{
+    const {olpassword,Newpassord}=req.body
+    if(!(olpassword || Newpassord)){
+        throw new ApiError(401,"All fields are mandatory")
+    }
+
+    const user = await User.findById(req.user?._id)
+
+    const ispasswordCorrect = user.isPasswordCorrect(olpassword)
+
+    if(!ispasswordCorrect){
+        throw new ApiError(400,"Invlid oldPassword")
+    }
+
+    user.password = Newpassord
+
+    await user.save({validateBeforeSave:false})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,{},"Password changed successfully"))
+})
+
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+    const {fullname,email} = req.body
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{fullname,email}
+        },
+        {new:true}
+    ).select("-password")
+
+   return  res
+    .status(200)
+    .json(new ApiResponse(200,{user},"Deatils updated successfully"))
+})
+
+const getcurrentUser = asyncHandler(async(req,res)=>{
+    return res.status(200).json(new ApiResponse(200,req.user,"User fetched Successfully"))
+})
+
+const updateAvatar = asyncHandler(async(res,req)=>{
+    const avataLocalPath = req.file?.path
+
+    if(!avataLocalPath){
+        throw new ApiError(400,"Avatar file is missing")
+    }
+
+    const avatar = await uploadOnCloudinary(avataLocalPath)
+
+    if (!avatar.url) {
+        throw new ApiError(400,"Soething Went wrong!!, Wlie uploading avata")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{avatar:avatar.url}
+        },
+        {new:true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"avata uploded successfully"))
+})
+
+const updateCoverImage = asyncHandler(async(req,res)=>{
+    const coverImageLocalPath = req.file?.path
+    if (!coverImageLocalPath) {
+        throw new ApiError(400,"Cover Image is missing")
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
+    if (!coverImage.url) {
+        throw new ApiError(400,"Soething Went wrong!!, Wlie uploading avata")
+    }
+
+    const user = User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{coverImage:coverImage.url}
+        },
+        {new:true}
+    )
+
+    return res.status(200).json(
+        new ApiResponse(200,user,"Coverimage is updated successfully")
+    )
+})
+
+// Aggregatin Pipleline
+
+const getSuscription = asyncHandler(async(req,res)=>{
+  const {username}= req.params
+
+  if (!username) {
+    throw new ApiError(400,"usernme is missing")
+  }
+
+  await User.aggregate([
+    {
+        $match:{
+            username: username
+        }
+    },{
+        $lookup:{
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"channel",
+            as:"Subscribers"
+        }
+    },{
+        $lookup:{
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"subscriber",
+            as:"SubscribeTo"
+        }
+    },
+    {
+        $addFields:{
+                subscribrsCount:{
+                    $size:"$Subscribers"
+                },
+                SubscribeToCount:{
+                    $size:"$SubscribeTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id0,"$Subscribers.subscriber"]},
+                        then: true,
+                        else:false
+                    }
+                }
+        }
+    }
+  ])
+})
+
+export {registerUser,loginUser,logOut,genrateNewAccessToken,changeCurrentPassword,
+    updateAccountDetails,getcurrentUser,updateAvatar,updateCoverImage,getSuscription}
