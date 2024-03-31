@@ -413,4 +413,4 @@ const watchHistory = asyncHandler(async(req,res)=>{
 })
 
 export {registerUser,loginUser,logOut,genrateNewAccessToken,changeCurrentPassword,
-    updateAccountDetails,getcurrentUser,updateAvatar,updateCoverImage,getSuscription}
+    updateAccountDetails,getcurrentUser,updateAvatar,updateCoverImage,getSuscription,watchHistory}
