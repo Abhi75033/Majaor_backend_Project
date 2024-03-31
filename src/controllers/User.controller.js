@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary,deleteOnCloudinary } from "../utils/Cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js"
 import jsonwebtoken from 'jsonwebtoken';
+import mongoose from "mongoose";
 
 
 const genrateAccessandRefreshToken = async(UserId)=>{
@@ -355,6 +356,60 @@ const getSuscription = asyncHandler(async(req,res)=>{
     new ApiResponse(200,channel[0],"Channel fetched successfully")
   )
 
+})
+
+
+const watchHistory = asyncHandler(async(req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:'video',
+                localField:'whathHistory',
+                foreignField:'_id',
+                as:'WatchHistory',
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:'User',
+                            localField:'owner',
+                            foreignField:'_id',
+                            as:'Owner',
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },{
+                        $addFields:{
+                            Owner:{
+                                $first:"$Owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+    ])
+
+    if (!user) {
+        return res.status(404).json(
+            new ApiError(404,"Something went wrong With whathHitory")
+        )
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200,'WatchHistory Fetched Successfully')
+    )
 })
 
 export {registerUser,loginUser,logOut,genrateNewAccessToken,changeCurrentPassword,
