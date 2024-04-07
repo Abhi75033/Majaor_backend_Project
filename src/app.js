@@ -19,11 +19,13 @@ app.use(cookieParser())
 // Improt Routes
 import userRotes from './routes/User.rotes.js'
 import videoRoutes from './routes/video.routes.js'
+import  Subscription  from './routes/subscription.routes.js'
 // when we export the routes so we have to use middlewares
 
 
 app.use('/api/v1/users',userRotes)// after '/api/v1/users' => userRoutes
 app.use('/api/v1/videos',videoRoutes)// after '/api/v1/videos' => videoRoutes
+app.use('/api/v1/subscriptions',Subscription)
 
 // Final Url = https://localhost:5000/api/v1/users/register
 
